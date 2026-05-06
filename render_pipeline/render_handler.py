@@ -113,7 +113,7 @@ class Renderer:
         #* DEBUG 
         delta_time = time() - now
         Renderer.delta_time = delta_time
-        Renderer.performance_report(delta_time)
+        Renderer.log_performance(delta_time)
 
     @staticmethod
     def screen_project(vertex: Vector3) -> Vector2 | None:
@@ -175,9 +175,10 @@ class Renderer:
 
         # stdout.write("\x1b[2J")
 
+
     @staticmethod
-    def performance_report(delta_time: float) -> None:
-        with open("performance_report.txt", "r+") as rpt:
+    def log_performance(delta_time: float) -> None:
+        with open("performance_log.txt", "r+") as rpt:
             rpt.write(f"\nDT: {delta_time}s   |   FPS: {(1 / delta_time):.2f}")
         
 
