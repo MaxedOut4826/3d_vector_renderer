@@ -110,6 +110,7 @@ class Renderer:
         stdout.write(f"\x1b[H{Renderer.frame}")
         stdout.flush()
         
+        #* DEBUG 
         delta_time = time() - now
         Renderer.delta_time = delta_time
         Renderer.performance_report(delta_time)
