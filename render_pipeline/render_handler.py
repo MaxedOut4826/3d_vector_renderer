@@ -1,57 +1,55 @@
 from sys import stdout
-from os import name as os, system as run, get_terminal_size as screen_size  # type: ignore
+from os import name as os, system as run, get_terminal_size as screen_size # type: ignore
 from math import floor, cos, sin, pi
 from time import time
 from render_pipeline.camera import Camera
 from . import (
     CELL_VALUES,
     CELL_LOOKUP,
-    indices,
-    vertices,
+    TARGET_FPS,
+    Edge,
     Vector3,
     Vector2,
     Vector,
+    ObjectParameters,
 )
 
 
 class Renderer:
     screen_size: list[int] = []
+    aspect_ratio: float = 0
     empty_frame_buffer: list[list[str]] = []
 
     frame_buffer: list[list[str]] = []
     frame: str = ""
-    fps: int = 240
-
-    angle: float = 5.5
+    fps: float = TARGET_FPS
     delta_time: float = 1 / fps
-    
-    cos_a: float = 0
-    sin_a: float = 0
-    
+
+    queue: list[ObjectParameters] = []
+
     @staticmethod
     def draw_pixel(x: float, y: float) -> None:
-        LOCAL_CELL_VALUES = CELL_VALUES
-        LOCAL_CELL_LOOKUP = CELL_LOOKUP
         buffer = Renderer.frame_buffer
-        screen_size = Renderer.screen_size
 
-        if 0 > x or 0 > y or x >= screen_size[0] or y >= screen_size[1]:
-            return
-
+        y = int(y)
         data = 1 if (y & 1) == 0 else 2
+
         x = int(x)
-        y = int(y >> 1)
+        y >>= 1
+
         pixel = buffer[y][x]
-
-        bit: str = LOCAL_CELL_VALUES[data | LOCAL_CELL_LOOKUP[pixel]]
-
+        bit: str = CELL_VALUES[data | CELL_LOOKUP[pixel]]
         buffer[y][x] = bit
 
-    # Bresenham's Line Algorithm
+    """
+    Bresenham's Line Algorithm
+    ? https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+    """
+
     @staticmethod
     def draw_line(x0: float, y0: float, x1: float, y1: float) -> None:
         draw_pixel = Renderer.draw_pixel
-        
+
         dx: float = abs(x1 - x0)
         dy: float = abs(y1 - y0)
 
@@ -81,35 +79,46 @@ class Renderer:
         now: float = time()
 
         screen_project = Renderer.screen_project
-        rotate_xy = Renderer.rotate_xy
-        rotate_xz = Renderer.rotate_xz
+        edge_clip = Renderer.edge_clip
+        near_clip = Renderer.near_clip
 
-        Renderer.angle += pi * Renderer.delta_time
+        Renderer.angle += (pi * 0.1) * Renderer.delta_time
         angle = Renderer.angle
-        
+
         Renderer.cos_a = cos(angle)
         Renderer.sin_a = sin(angle)
 
-        for lines in indices:
-            for start, end in zip(lines, lines[1:] + lines[:1]):
-                p0 = screen_project(
-                    rotate_xy(
-                        rotate_xz(vertices[start], angle),
-                        angle,
+        for object in Renderer.queue:
+            vertices, indices = object.values()
+
+            vertices = Renderer.update_vertices(vertices)
+
+            for lines in indices:
+                v0 = vertices[lines[0]]
+
+                """
+                ! Lines should only wrap back to p0 when their length is greater than 2
+                """
+                for index in lines[1:] + lines[:1]:
+                    v1 = vertices[index]
+
+                    clipped = near_clip(v0, v1)
+
+                    if not clipped:
+                        v0 = v1
+                        continue
+
+                    c0_3d, c1_3d = clipped
+
+                    clipping_points = edge_clip(
+                        screen_project(c0_3d), screen_project(c1_3d)
                     )
-                )
 
-                p1 = screen_project(
-                    rotate_xy(
-                        rotate_xz(vertices[end], angle),
-                        angle,
-                    )
-                )
+                    if clipping_points:
+                        c0, c1 = clipping_points
+                        Renderer.draw_line(c0[0], c0[1], c1[0], c1[1])
 
-                if not p0 or not p1:
-                    continue
-
-                Renderer.draw_line(p0[0], p0[1], p1[0], p1[1])
+                    v0 = v1
 
         buffer = Renderer.frame_buffer
 
@@ -118,64 +127,152 @@ class Renderer:
         Renderer.clear_frame()
 
         stdout.write(f"\x1b[H{Renderer.frame}")
-        # stdout.flush()
 
-        # * DEBUG
+        # ? DEBUG
         delta_time = time() - now
         Renderer.delta_time = delta_time
+        Renderer.fps = round(1 / delta_time, 2)
+
         # Renderer.log_performance(delta_time)
+        # stdout.write(f"\nDT: {delta_time}s   |   FPS: {Renderer.fps}")
+
+    @staticmethod
+    def point_is_clipping(vertex: Vector2) -> int:
+        screen_x, screen_y = Renderer.screen_size
+        x, y = vertex
+
+        clip_edge: int = Edge.inside
+
+        if x < 0:
+            clip_edge |= Edge.left
+
+        elif x >= screen_x:
+            clip_edge |= Edge.right
+
+        if y < 0:
+            clip_edge |= Edge.bottom
+
+        elif y >= screen_y:
+            clip_edge |= Edge.top
+
+        return clip_edge
+
+    """
+    Cohen Sutherland Algorithm
+    ? https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
+    """
+
+    @staticmethod
+    def edge_clip(p0: Vector2, p1: Vector2) -> tuple[Vector2, Vector2] | None:
+        screen_x, screen_y = Renderer.screen_size
+
+        x0, y0 = p0
+        x1, y1 = p1
+
+        p0_clip = Renderer.point_is_clipping(p0)
+        p1_clip = Renderer.point_is_clipping(p1)
+
+        while True:
+            # Check if neither points are out of bounds
+            if not (p0_clip or p1_clip):
+                return [int(x0), int(y0)], [int(x1), int(y1)]
+
+            # Check if both points are out of bounds
+            if p0_clip & p1_clip:
+                return
+
+            # Only one point is out of bounds; perform the algorithm
+            x: float = 0
+            y: float = 0
+
+            clipping_point = p1_clip if p1_clip > p0_clip else p0_clip
+
+            if clipping_point & Edge.top:
+                x = x0 + (x1 - x0) * (screen_y - 1 - y0) / (y1 - y0)
+                y = screen_y - 1
+
+            elif clipping_point & Edge.bottom:
+                x = x0 + (x1 - x0) * -y0 / (y1 - y0)
+                y = 0
+
+            elif clipping_point & Edge.right:
+                y = y0 + (y1 - y0) * (screen_x - 1 - x0) / (x1 - x0)
+                x = screen_x - 1
+
+            elif clipping_point & Edge.left:
+                y = y0 + (y1 - y0) * -x0 / (x1 - x0)
+                x = 0
+
+            if clipping_point is p0_clip:
+                x0, y0 = [x, y]
+                p0_clip = Renderer.point_is_clipping([x0, y0])
+                continue
+
+            x1, y1 = [x, y]
+            p1_clip = Renderer.point_is_clipping([x1, y1])
+
+    # 3D Modified version of the Cohen Sutherland Algorithm
+    @staticmethod
+    def near_clip(p0: Vector3, p1: Vector3) -> tuple[Vector3, Vector3] | None:
+        NEAR_SCREEN_CUTOFF_THRESHOLD: float = 0.01
+
+        dz0 = p0[2] - Camera.position[2]
+        dz1 = p1[2] - Camera.position[2]
+
+        inside0 = dz0 > NEAR_SCREEN_CUTOFF_THRESHOLD
+        inside1 = dz1 > NEAR_SCREEN_CUTOFF_THRESHOLD
+
+        if not inside0 and not inside1:
+            return
+
+        if inside0 and inside1:
+            return p0, p1
+
+        t = (NEAR_SCREEN_CUTOFF_THRESHOLD - dz0) / (dz1 - dz0)
+
+        intersection = [
+            p0[0] + (p1[0] - p0[0]) * t,
+            p0[1] + (p1[1] - p0[1]) * t,
+            p0[2] + (p1[2] - p0[2]) * t,
+        ]
+
+        if inside0:
+            return p0, intersection
+
+        return intersection, p1
 
     @staticmethod
     def screen_project(vertex: Vector3) -> Vector2 | None:
         offset_x, offset_y, offset_z = Vector.subtract(vertex, Camera.position)
-
-        if offset_z <= 0.01:
-            return
-
         screen_x, screen_y = Renderer.screen_size
-        aspect_ratio = screen_x / screen_y
 
         return [
-            floor((((offset_x / offset_z) / aspect_ratio + 1) * 0.5) * screen_x),
-            floor(((1 - offset_y / offset_z) * 0.5) * screen_y),
+            floor(
+                (((offset_x / offset_z) / Renderer.aspect_ratio + 1) * 0.5)
+                * (screen_x - 1)
+            ),
+            floor(((1 - offset_y / offset_z) * 0.5) * (screen_y - 1)),
         ]
 
-    @staticmethod
-    def rotate_xz(vertex: Vector3, angle: float) -> Vector3:
-        x, y, z = vertex
-        cos_a = Renderer.cos_a
-        sin_a = Renderer.sin_a
-
-        return [
-            x * cos_a - z * sin_a,
-            y,
-            x * sin_a + z * cos_a,
-        ]
-
-    @staticmethod
-    def rotate_xy(vertex: Vector3, angle: float) -> Vector3:
-        x, y, z = vertex
-        cos_a = Renderer.cos_a
-        sin_a = Renderer.sin_a
-
-        return [
-            x * cos_a - y * sin_a,
-            x * sin_a + y * cos_a,
-            z,
-        ]
+    """
+    ! Object acting methods like rotate_xy, rotate_xz, update_vertices, and push_object_to_queue could be pushed to an Objects class that handles world obj's 
+    """
 
     @staticmethod
     def clear_frame() -> None:
         screen_x, screen_y = screen_size()
-        screen_y *= 2
+        screen_y <<= 1
 
         if Renderer.screen_size != [screen_x, screen_y]:
-            Renderer.empty_frame_buffer = [[CELL_VALUES[0]] * screen_x for _ in range(screen_y // 2)]
+            Renderer.empty_frame_buffer = [
+                [CELL_VALUES[0]] * screen_x for _ in range(screen_y >> 1)
+            ]
 
             Renderer.screen_size = [screen_x, screen_y]
+            Renderer.aspect_ratio = screen_x / screen_y
 
         Renderer.frame_buffer = [y.copy() for y in Renderer.empty_frame_buffer]
-        
+
         # \x1b[2J   <-- CLEAR SCREEN ANSI
 
     @staticmethod
@@ -184,13 +281,20 @@ class Renderer:
             run("cls")
         else:
             run("clear")
-            
+
         Renderer.clear_frame()
 
     @staticmethod
-    def log_performance(delta_time: float) -> None:
+    def push_object_to_queue(object: ObjectParameters) -> None:  #! Object
+        Renderer.queue.append(object)
+
+    @staticmethod
+    def log_performance(delta_time: float) -> None:  #! Move to util?
         with open("performance_log.txt", "r+") as rpt:
-            rpt.write(f"\nDT: {delta_time}s   |   FPS: {round(1 / delta_time, 2)}")
+            rpt.write(f"\nDT: {delta_time}s   |   FPS: {Renderer.fps, 2}")
 
 
-# TODO make proper delta time query
+"""
+TODO: store rotation per object
+? Each object may be an instance of the class where the address gets pushed to a list as an iterable
+"""

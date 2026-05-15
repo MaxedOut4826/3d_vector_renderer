@@ -64,7 +64,7 @@ class Vector:
         return result
 
     @staticmethod
-    def toString(vector: Vector2 | Vector3):
+    def to_string(vector: Vector3): # TODO: add vector2 compatability and/or make separate Vector2 class to handle 2d vector math
         return f"{vector[0]}, {vector[1]}, {vector[2]}"
 
     @staticmethod

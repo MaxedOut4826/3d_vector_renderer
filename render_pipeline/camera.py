@@ -22,3 +22,6 @@ class Camera:
             ),
             4,
         )
+        
+# TODO: Must differentiate between camera movement and camera rotation instructions
+# ? Should make them separate methods which are called within the listen_for_input method
