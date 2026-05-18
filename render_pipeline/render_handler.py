@@ -1,14 +1,15 @@
 from sys import stdout
 from os import name as os, system as run, get_terminal_size as screen_size  # type: ignore
 from math import floor
-from time import time
+from time import perf_counter
 from render_pipeline.camera import Camera
 from render_pipeline.objects import Object
 from . import (
-    CELL_VALUES,
-    CELL_LOOKUP,
+    CELL_STATES,
+    CELL_STATE_VALUE_LOOKUP,
     TARGET_FPS,
     Edge,
+    Ansi,
     Vector3,
     Vector2,
     Vector,
@@ -25,20 +26,20 @@ class Renderer:
     fps: float = TARGET_FPS
     delta_time: float = 1 / fps
 
-    # queue: list[ObjectInstance] = Object.objects
-
     @staticmethod
     def draw_pixel(x: float, y: float) -> None:
         buffer = Renderer.frame_buffer
 
         y = int(y)
+        # Bitmasking here with the first bit checks odd or even which is more performant than modulo by 2
         data = 1 if (y & 1) == 0 else 2
 
         x = int(x)
+        # Shifting right one bit here is mathematically adjacent to dividing by two, but more performant
         y >>= 1
 
         pixel = buffer[y][x]
-        bit: str = CELL_VALUES[data | CELL_LOOKUP[pixel]]
+        bit: str = CELL_STATES[data | CELL_STATE_VALUE_LOOKUP[pixel]]
         buffer[y][x] = bit
 
     """
@@ -76,11 +77,13 @@ class Renderer:
 
     @staticmethod
     def draw_frame() -> None:
-        now: float = time()
+        start_time: float = perf_counter()
 
+        # These functions and values are grabbed locally to prevent repeated external fetching for performance
         screen_project = Renderer.screen_project
         edge_clip = Renderer.edge_clip
         near_clip = Renderer.near_clip
+        buffer = Renderer.frame_buffer
 
         # pi * 0.1 * Renderer.delta_time
 
@@ -89,19 +92,21 @@ class Renderer:
             vertices = mesh["vertices"]
             indices = mesh["indices"]
 
-            for lines in indices:
-                v0 = vertices[lines[0]]
+            for polygon in indices:
+                p0 = vertices[polygon[0]]
 
-                for index in (lines[1:] + lines[:1]) if len(lines) > 2 else lines[1:]:
-                    v1 = vertices[index]
+                for index in (
+                    (polygon[1:] + polygon[:1]) if len(polygon) > 2 else polygon[1:]
+                ):
+                    p1 = vertices[index]
 
-                    clipped = near_clip(v0, v1)
+                    any_clipped = near_clip(p0, p1)
 
-                    if not clipped:
-                        v0 = v1
+                    if not any_clipped:
+                        p0 = p1
                         continue
 
-                    c0_3d, c1_3d = clipped
+                    c0_3d, c1_3d = any_clipped
 
                     clipping_points = edge_clip(
                         screen_project(c0_3d), screen_project(c1_3d)  # type: ignore
@@ -111,24 +116,22 @@ class Renderer:
                         c0, c1 = clipping_points
                         Renderer.draw_line(c0[0], c0[1], c1[0], c1[1])
 
-                    v0 = v1
-
-        buffer = Renderer.frame_buffer
+                    p0 = p1
 
         Renderer.frame = "\n".join(map("".join, buffer))
-
         Renderer.clear_frame()
 
-        stdout.write(f"\x1b[H{Renderer.frame}")
+        stdout.write(f"{Ansi.cursor_home}{Renderer.frame}")
+
+        delta_time = perf_counter() - start_time
+        Renderer.delta_time = delta_time if delta_time > 0 else Renderer.delta_time
+        Renderer.fps = round(1 / Renderer.delta_time)
 
         # ? DEBUG
-        delta_time = time() - now
-        Renderer.delta_time = delta_time
-        Renderer.fps = round(1 / delta_time)
-
         # Renderer.log_performance(delta_time)
         # stdout.write(f"\nDT: {delta_time}s   |   FPS: {Renderer.fps}")
 
+    # Bitpacks the edges that the point overlaps to be masked later in the edge clip
     @staticmethod
     def point_is_clipping(vertex: Vector2) -> int:
         screen_x, screen_y = Renderer.screen_size
@@ -158,12 +161,13 @@ class Renderer:
     @staticmethod
     def edge_clip(p0: Vector2, p1: Vector2) -> tuple[Vector2, Vector2] | None:
         screen_x, screen_y = Renderer.screen_size
+        point_is_clipping = Renderer.point_is_clipping
 
         x0, y0 = p0
         x1, y1 = p1
 
-        p0_clip = Renderer.point_is_clipping(p0)
-        p1_clip = Renderer.point_is_clipping(p1)
+        p0_clip = point_is_clipping(p0)
+        p1_clip = point_is_clipping(p1)
 
         while True:
             # Check if neither points are out of bounds
@@ -196,40 +200,44 @@ class Renderer:
                 y = y0 + (y1 - y0) * -x0 / (x1 - x0)
                 x = 0
 
-            if clipping_point is p0_clip:
+            if clipping_point == p0_clip:
                 x0, y0 = [x, y]
-                p0_clip = Renderer.point_is_clipping([x0, y0])
+                p0_clip = point_is_clipping([x0, y0])
                 continue
 
             x1, y1 = [x, y]
-            p1_clip = Renderer.point_is_clipping([x1, y1])
+            p1_clip = point_is_clipping([x1, y1])
 
     # 3D Modified version of the Cohen Sutherland Algorithm
     @staticmethod
     def near_clip(p0: Vector3, p1: Vector3) -> tuple[Vector3, Vector3] | None:
         NEAR_SCREEN_CUTOFF_THRESHOLD: float = 0.01
 
-        dz0 = p0[2] - Camera.position[2]
-        dz1 = p1[2] - Camera.position[2]
+        camera_z = Camera.position[2]
+        x0, y0, z0 = p0
+        x1, y1, z1 = p1
 
-        inside0 = dz0 > NEAR_SCREEN_CUTOFF_THRESHOLD
-        inside1 = dz1 > NEAR_SCREEN_CUTOFF_THRESHOLD
+        dz0 = z0 - camera_z
+        dz1 = z1 - camera_z
 
-        if not inside0 and not inside1:
+        p0_inside = dz0 > NEAR_SCREEN_CUTOFF_THRESHOLD
+        p1_inside = dz1 > NEAR_SCREEN_CUTOFF_THRESHOLD
+
+        if not p0_inside and not p1_inside:
             return
 
-        if inside0 and inside1:
+        if p0_inside and p1_inside:
             return p0, p1
 
         t = (NEAR_SCREEN_CUTOFF_THRESHOLD - dz0) / (dz1 - dz0)
 
         intersection = [
-            p0[0] + (p1[0] - p0[0]) * t,
-            p0[1] + (p1[1] - p0[1]) * t,
-            p0[2] + (p1[2] - p0[2]) * t,
+            x0 + (x1 - x0) * t,
+            y0 + (y1 - y0) * t,
+            z0 + (z1 - z0) * t,
         ]
 
-        if inside0:
+        if p0_inside:
             return p0, intersection
 
         return intersection, p1
@@ -249,20 +257,22 @@ class Renderer:
 
     @staticmethod
     def clear_frame() -> None:
-        screen_x, screen_y = screen_size()
-        screen_y <<= 1
+        screen_x, screen_y_standard = screen_size()
+        screen_y = screen_y_standard << 1
+        """
+        Shifting left one bit here is mathematically adjacent to multiplying by two, but more performant
+        We do this because each character reresents two pixels vertically to achieve a higher resolution
+        """
 
         if Renderer.screen_size != [screen_x, screen_y]:
             Renderer.empty_frame_buffer = [
-                [CELL_VALUES[0]] * screen_x for _ in range(screen_y >> 1)
+                [CELL_STATES[0]] * screen_x for _ in range(screen_y_standard)
             ]
 
             Renderer.screen_size = [screen_x, screen_y]
             Renderer.aspect_ratio = screen_x / screen_y
 
         Renderer.frame_buffer = [y.copy() for y in Renderer.empty_frame_buffer]
-
-        # \x1b[2J   <-- CLEAR SCREEN ANSI
 
     @staticmethod
     def clear_all() -> None:
@@ -273,17 +283,7 @@ class Renderer:
 
         Renderer.clear_frame()
 
-    # @staticmethod
-    # def push_object_to_queue(object: ObjectParameters) -> None:  #! Object
-    #     Renderer.queue.append(object)
-
     @staticmethod
     def log_performance(delta_time: float) -> None:  #! Move to util?
         with open("performance_log.txt", "r+") as rpt:
             rpt.write(f"\nDT: {delta_time}s   |   FPS: {Renderer.fps, 2}")
-
-
-"""
-TODO: store rotation per object
-? Each object may be an instance of the class where the address gets pushed to a list as an iterable
-"""

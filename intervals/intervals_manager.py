@@ -5,7 +5,7 @@ from constants.my_types import IntervalParameters
 intervals: list[IntervalParameters] = []
 
 
-def run_interval(callback: Callable, interval: float) -> None:  # type: ignore
+def run_interval(callback: Callable[[], None], interval: float) -> None:  # type: ignore
     intervals.append(
         {"callback": callback, "interval": interval, "next": time()}  # type: ignore
     )
@@ -22,4 +22,4 @@ def schedule_intervals() -> None:
             interval["callback"]()
             interval["next"] += interval["interval"]
 
-        sleep(0.001)
+        sleep(0.005)

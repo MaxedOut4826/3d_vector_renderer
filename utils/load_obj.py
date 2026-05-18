@@ -29,13 +29,14 @@ def convert_obj(path: str, scale: Vector3 = [1, 1, 1]) -> None:
 
             continue
 
-    with open(f"assets/output/{path}.py", "x") as f:
+    with open(f"objects/registry/mesh/{path}.py", "x") as f:
         f.write(
-            "from render_pipeline.render_handler import Renderer\n\n"
-            "Renderer.push_object_to_queue(\n{\n"
+            "from render_pipeline.objects import Object\n\n"
+            f"{path} = Object(\n{{\n"
             f"'vertices': {vertices},\n"
             f"'indices': {indices}\n}}\n)"
         )
+
 
 """
 TODO: Consider adding a separate function that creates the file 

@@ -1,2 +1,2 @@
-from intervals.registry import render
-from intervals.registry import inputs
+import intervals.registry.render
+import intervals.registry.inputs

@@ -26,11 +26,16 @@ class Vector:
         return [p * scalar for p in vector]
 
     @staticmethod
+    def hadamard_product(vector: Vector2 | Vector3, scalar: Vector2 | Vector3) -> Vector2 | Vector3:
+        return [p * s for p, s in zip(vector, scalar)]
+
+    @staticmethod
     def normalise(vector: Vector2 | Vector3, scalar: float) -> Vector2 | Vector3:
         return [p / scalar for p in vector]
-        
+
     @staticmethod
-    def distance_sqr(vector1: Vector3, vector2: Vector3) -> float: #TODO Adapt to both 2d and 3d
+    # TODO Adapt to both 2d and 3d
+    def distance_sqr(vector1: Vector3, vector2: Vector3) -> float:
         dx, dy, dz = Vector.subtract(vector1, vector2)
         return dx * dx + dy * dy + dz * dz
 
@@ -64,7 +69,8 @@ class Vector:
         return result
 
     @staticmethod
-    def to_string(vector: Vector3): # TODO: add vector2 compatability and/or make separate Vector2 class to handle 2d vector math
+    # TODO: add vector2 compatability and/or make separate Vector2 class to handle 2d vector math
+    def to_string(vector: Vector3):
         return f"{vector[0]}, {vector[1]}, {vector[2]}"
 
     @staticmethod
