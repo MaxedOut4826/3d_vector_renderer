@@ -1,4 +1,6 @@
 # import assets.output.dodecahedron
-import assets.output.cat
-import assets.output.car
-# import assets.cube
+# from assets.output.cat import cat
+# from assets.output.car import car
+from assets.cube import cube
+
+cube_instance = cube()

@@ -1,6 +1,6 @@
-from render_pipeline.render_handler import Renderer
+from render_pipeline.objects import Object
 
-Renderer.push_object_to_queue(
+car = Object(
     {
         "vertices": [
             [1.183702, -0.048293, -1.746666],

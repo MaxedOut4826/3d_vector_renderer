@@ -1,8 +1,9 @@
 from sys import stdout
-from os import name as os, system as run, get_terminal_size as screen_size # type: ignore
-from math import floor, cos, sin, pi
+from os import name as os, system as run, get_terminal_size as screen_size  # type: ignore
+from math import floor
 from time import time
 from render_pipeline.camera import Camera
+from render_pipeline.objects import Object
 from . import (
     CELL_VALUES,
     CELL_LOOKUP,
@@ -11,7 +12,6 @@ from . import (
     Vector3,
     Vector2,
     Vector,
-    ObjectParameters,
 )
 
 
@@ -25,7 +25,7 @@ class Renderer:
     fps: float = TARGET_FPS
     delta_time: float = 1 / fps
 
-    queue: list[ObjectParameters] = []
+    # queue: list[ObjectInstance] = Object.objects
 
     @staticmethod
     def draw_pixel(x: float, y: float) -> None:
@@ -82,24 +82,17 @@ class Renderer:
         edge_clip = Renderer.edge_clip
         near_clip = Renderer.near_clip
 
-        Renderer.angle += (pi * 0.1) * Renderer.delta_time
-        angle = Renderer.angle
+        # pi * 0.1 * Renderer.delta_time
 
-        Renderer.cos_a = cos(angle)
-        Renderer.sin_a = sin(angle)
-
-        for object in Renderer.queue:
-            vertices, indices = object.values()
-
-            vertices = Renderer.update_vertices(vertices)
+        for object in Object.objects:
+            mesh = object.object
+            vertices = mesh["vertices"]
+            indices = mesh["indices"]
 
             for lines in indices:
                 v0 = vertices[lines[0]]
 
-                """
-                ! Lines should only wrap back to p0 when their length is greater than 2
-                """
-                for index in lines[1:] + lines[:1]:
+                for index in (lines[1:] + lines[:1]) if len(lines) > 2 else lines[1:]:
                     v1 = vertices[index]
 
                     clipped = near_clip(v0, v1)
@@ -111,7 +104,7 @@ class Renderer:
                     c0_3d, c1_3d = clipped
 
                     clipping_points = edge_clip(
-                        screen_project(c0_3d), screen_project(c1_3d)
+                        screen_project(c0_3d), screen_project(c1_3d)  # type: ignore
                     )
 
                     if clipping_points:
@@ -131,7 +124,7 @@ class Renderer:
         # ? DEBUG
         delta_time = time() - now
         Renderer.delta_time = delta_time
-        Renderer.fps = round(1 / delta_time, 2)
+        Renderer.fps = round(1 / delta_time)
 
         # Renderer.log_performance(delta_time)
         # stdout.write(f"\nDT: {delta_time}s   |   FPS: {Renderer.fps}")
@@ -254,10 +247,6 @@ class Renderer:
             floor(((1 - offset_y / offset_z) * 0.5) * (screen_y - 1)),
         ]
 
-    """
-    ! Object acting methods like rotate_xy, rotate_xz, update_vertices, and push_object_to_queue could be pushed to an Objects class that handles world obj's 
-    """
-
     @staticmethod
     def clear_frame() -> None:
         screen_x, screen_y = screen_size()
@@ -284,9 +273,9 @@ class Renderer:
 
         Renderer.clear_frame()
 
-    @staticmethod
-    def push_object_to_queue(object: ObjectParameters) -> None:  #! Object
-        Renderer.queue.append(object)
+    # @staticmethod
+    # def push_object_to_queue(object: ObjectParameters) -> None:  #! Object
+    #     Renderer.queue.append(object)
 
     @staticmethod
     def log_performance(delta_time: float) -> None:  #! Move to util?

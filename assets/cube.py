@@ -1,6 +1,6 @@
-from render_pipeline.render_handler import Renderer
+from render_pipeline.objects import Object
 
-Renderer.push_object_to_queue(
+cube = Object(
     {
         "vertices": [
             [0.25, 0.25, 0.25],

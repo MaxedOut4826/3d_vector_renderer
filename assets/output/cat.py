@@ -1,6 +1,6 @@
-from render_pipeline.render_handler import Renderer
+from render_pipeline.objects import Object
 
-Renderer.push_object_to_queue(
+cat = Object(
     {
         "vertices": [
             [-2.4409995, 0.88726326, -0.356586705],
