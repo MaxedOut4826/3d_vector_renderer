@@ -3,9 +3,9 @@ from utils.vector import Vector
 from constants.config import (
     CELL_STATES,
     CELL_STATE_VALUE_LOOKUP,
-    TARGET_FPS,
-    Edge,
-    Ansi,
+    MAX_FPS,
 )
-from constants.my_types import Vector2, Vector3, ObjectParameters
-from constants.inputs import inputs
+from constants.my_types import Vector2, Vector3, Vertices, Indices, ObjectParameters, FrameBuffer
+from constants.screen_edges import Edge
+from constants.ansi_codes import Ansi
+from constants.key_binds import KEY_BINDS
