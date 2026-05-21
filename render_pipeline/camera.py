@@ -1,27 +1,27 @@
-from msvcrt import kbhit, getch
-from . import inputs, Vector, Vector3
+from . import Vector, Vector3
 
 
 class Camera:
     position: Vector3 = [0, 0, -16]
+    rotation: Vector3 = [0, 0, 0]
+
     movement_speed: float = 1
+    sensitivity: float = 1
 
     @staticmethod
-    def listen_for_input() -> None:
-        if not kbhit():
-            return
-
-        key: bytes = getch()
-
-        if not key in inputs:
-            return
-
+    def move(movement_vector: Vector3) -> None:
         Camera.position = Vector.round(
             Vector.add(
-                Camera.position, Vector.multiply(inputs[key], Camera.movement_speed)
+                Camera.position, Vector.multiply(movement_vector, Camera.movement_speed)
             ),
             4,
         )
-        
-# TODO: Must differentiate between camera movement and camera rotation instructions
-# ? Should make them separate methods which are called within the listen_for_input method
+
+    @staticmethod
+    def rotate(rotation_vector: Vector3) -> None:
+        Camera.rotation = Vector.round(
+            Vector.add(
+                Camera.rotation, Vector.multiply(rotation_vector, Camera.sensitivity)
+            ),
+            4,
+        )
