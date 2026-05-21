@@ -1,6 +1,6 @@
-from render_pipeline.objects import Object
+from objects.objects_manager import Prefab
 
-car = Object(
+car = Prefab(
     {
         "vertices": [
             [1.183702, -0.048293, -1.746666],

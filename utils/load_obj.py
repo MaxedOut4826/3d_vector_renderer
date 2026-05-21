@@ -31,8 +31,8 @@ def convert_obj(path: str, scale: Vector3 = [1, 1, 1]) -> None:
 
     with open(f"objects/registry/mesh/{path}.py", "x") as f:
         f.write(
-            "from render_pipeline.objects import Object\n\n"
-            f"{path} = Object(\n{{\n"
+            "from objects.objects_manager import Prefab\n\n"
+            f"{path} = Prefab(\n{{\n"
             f"'vertices': {vertices},\n"
             f"'indices': {indices}\n}}\n)"
         )

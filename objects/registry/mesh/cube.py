@@ -1,6 +1,6 @@
-from render_pipeline.objects import Object
+from objects.objects_manager import Prefab
 
-cube = Object(
+cube = Prefab(
     {
         "vertices": [
             [0.25, 0.25, 0.25],

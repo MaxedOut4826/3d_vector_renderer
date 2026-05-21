@@ -1,6 +1,7 @@
-from render_pipeline.objects import Object
 
-cat = Object(
+from objects.objects_manager import Prefab
+
+cat = Prefab(
     {
         "vertices": [
             [-2.4409995, 3.54905304, -1.42634682],

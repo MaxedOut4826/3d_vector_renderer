@@ -3,11 +3,12 @@ from os import name as os, system as run, get_terminal_size as screen_size  # ty
 from math import floor
 from time import perf_counter
 from render_pipeline.camera import Camera
-from render_pipeline.objects import Object
+from objects.objects_manager import Prefab
 from . import (
     CELL_STATES,
     CELL_STATE_VALUE_LOOKUP,
-    TARGET_FPS,
+    MAX_FPS,
+    FrameBuffer,
     Edge,
     Ansi,
     Vector3,
@@ -18,13 +19,15 @@ from . import (
 
 class Renderer:
     screen_size: list[int] = []
-    aspect_ratio: float = 0
-    empty_frame_buffer: list[list[str]] = []
+    aspect_ratio: float = 0.0
 
-    frame_buffer: list[list[str]] = []
+    empty_frame_buffer: FrameBuffer = []
+    frame_buffer: FrameBuffer = []
     frame: str = ""
-    fps: float = TARGET_FPS
+
+    fps: float = MAX_FPS
     delta_time: float = 1 / fps
+    last_frame_time: float = perf_counter()
 
     @staticmethod
     def draw_pixel(x: float, y: float) -> None:
@@ -77,20 +80,19 @@ class Renderer:
 
     @staticmethod
     def draw_frame() -> None:
-        start_time: float = perf_counter()
-
         # These functions and values are grabbed locally to prevent repeated external fetching for performance
         screen_project = Renderer.screen_project
         edge_clip = Renderer.edge_clip
         near_clip = Renderer.near_clip
         buffer = Renderer.frame_buffer
 
-        # pi * 0.1 * Renderer.delta_time
+        total_edges = 0
+        rendered_edges = 0
+        # unrendered_edges = 0
 
-        for object in Object.objects:
-            mesh = object.object
-            vertices = mesh["vertices"]
-            indices = mesh["indices"]
+        for object in Prefab.instances:
+            vertices = object.get_transformed_vertices()
+            indices = object.prefab.mesh["indices"]
 
             for polygon in indices:
                 p0 = vertices[polygon[0]]
@@ -99,6 +101,7 @@ class Renderer:
                     (polygon[1:] + polygon[:1]) if len(polygon) > 2 else polygon[1:]
                 ):
                     p1 = vertices[index]
+                    total_edges += 1
 
                     any_clipped = near_clip(p0, p1)
 
@@ -116,20 +119,29 @@ class Renderer:
                         c0, c1 = clipping_points
                         Renderer.draw_line(c0[0], c0[1], c1[0], c1[1])
 
+                        rendered_edges += 1
+
                     p0 = p1
 
+        # unrendered_edges = total_edges - rendered_edges
+        rendered_edges_percent = rendered_edges / total_edges * 100
+
         Renderer.frame = "\n".join(map("".join, buffer))
+        Renderer.get_screen_size()
         Renderer.clear_frame()
 
         stdout.write(f"{Ansi.cursor_home}{Renderer.frame}")
 
-        delta_time = perf_counter() - start_time
+        now = perf_counter()
+        delta_time = now - Renderer.last_frame_time
         Renderer.delta_time = delta_time if delta_time > 0 else Renderer.delta_time
-        Renderer.fps = round(1 / Renderer.delta_time)
+        Renderer.fps = min(floor(1 / Renderer.delta_time), MAX_FPS)
+        Renderer.last_frame_time = now
 
         # ? DEBUG
-        # Renderer.log_performance(delta_time)
-        # stdout.write(f"\nDT: {delta_time}s   |   FPS: {Renderer.fps}")
+        stdout.write(
+            f"\nDT: {delta_time:.5f}s   |   FPS: {Renderer.fps:<3}|  Edges: {rendered_edges:,} / {total_edges:,} [{rendered_edges_percent:.1f}%]"
+        )
 
     # Bitpacks the edges that the point overlaps to be masked later in the edge clip
     @staticmethod
@@ -179,8 +191,14 @@ class Renderer:
                 return
 
             # Only one point is out of bounds; perform the algorithm
-            x: float = 0
-            y: float = 0
+            x: float = 0.0
+            y: float = 0.0
+
+            # Explicit Type Annotating to stop it yapping
+            x0: float
+            y0: float
+            x1: float
+            y1: float
 
             clipping_point = p1_clip if p1_clip > p0_clip else p0_clip
 
@@ -256,22 +274,35 @@ class Renderer:
         ]
 
     @staticmethod
-    def clear_frame() -> None:
+    def get_screen_size() -> None:
         screen_x, screen_y_standard = screen_size()
+        screen_y_standard -= (
+            1  # Temporary fix for screen drifting when logging debug info
+        )
         screen_y = screen_y_standard << 1
         """
         Shifting left one bit here is mathematically adjacent to multiplying by two, but more performant
-        We do this because each character reresents two pixels vertically to achieve a higher resolution
+        We do this because each character represents two pixels vertically to achieve a higher resolution
         """
 
-        if Renderer.screen_size != [screen_x, screen_y]:
-            Renderer.empty_frame_buffer = [
-                [CELL_STATES[0]] * screen_x for _ in range(screen_y_standard)
-            ]
+        if Renderer.screen_size == [screen_x, screen_y]:
+            return
 
-            Renderer.screen_size = [screen_x, screen_y]
-            Renderer.aspect_ratio = screen_x / screen_y
+        Renderer._build_empty_frame_buffer(screen_x, screen_y_standard)
 
+        Renderer.screen_size = [screen_x, screen_y]
+        Renderer.aspect_ratio = screen_x / screen_y
+
+        Renderer.clear_all()
+
+    @staticmethod
+    def _build_empty_frame_buffer(screen_x: int, screen_y: int) -> None:
+        Renderer.empty_frame_buffer = [
+            [CELL_STATES[0]] * screen_x for _ in range(screen_y)
+        ]
+
+    @staticmethod
+    def clear_frame() -> None:
         Renderer.frame_buffer = [y.copy() for y in Renderer.empty_frame_buffer]
 
     @staticmethod
@@ -282,8 +313,3 @@ class Renderer:
             run("clear")
 
         Renderer.clear_frame()
-
-    @staticmethod
-    def log_performance(delta_time: float) -> None:  #! Move to util?
-        with open("performance_log.txt", "r+") as rpt:
-            rpt.write(f"\nDT: {delta_time}s   |   FPS: {Renderer.fps, 2}")
