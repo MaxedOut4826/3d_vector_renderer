@@ -1,7 +1,12 @@
 from typing import TypedDict, Callable
 
-Vector3 = list[int | float]
-Vector2 = list[int | float]
+Vector3 = list[float]
+Vector2 = list[float]
+
+Vertices = list[Vector3]
+Indices = list[list[int]]
+
+FrameBuffer = list[list[str]]
 
 
 class IntervalParameters(TypedDict):
@@ -11,5 +16,5 @@ class IntervalParameters(TypedDict):
 
 
 class ObjectParameters(TypedDict):
-    vertices: list[Vector3]
-    indices: list[list[int]]
+    vertices: Vertices
+    indices: Indices
