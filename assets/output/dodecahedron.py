@@ -1,6 +1,6 @@
-from render_pipeline.render_handler import Renderer
+from objects.objects_manager import Prefab
 
-Renderer.push_object_to_queue(
+Prefab(
     {
         "vertices": [
             [-0.57735, -0.57735, 0.57735],
