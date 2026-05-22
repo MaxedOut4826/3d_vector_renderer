@@ -4,7 +4,10 @@ from ctypes import wintypes
 
 
 def force_utf8() -> None:
-    # AI solution for special ASCII characters not displaying to the terminal in pypy
+    """
+    AI solution for special ASCII characters not displaying to the terminal in pypy
+    """
+
     # UTF-8 terminal
     run("chcp 65001 > nul")
 

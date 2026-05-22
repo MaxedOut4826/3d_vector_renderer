@@ -1,5 +1,5 @@
 from typing import Self
-from render_pipeline import ObjectParameters, Vector3, Vector, Vertices
+from render_pipeline import ObjectParameters, Vector3, Vertices
 from objects.vertex_transformations import Vertex
 
 
@@ -58,11 +58,27 @@ class ObjectInstance:
         return self
 
     def move(self: Self, offset: Vector3) -> Self:
-        self.position = Vector.add(self.position, offset)
+        x0, y0, z0 = self.position
+        x1, y1, z1 = offset
+
+        self.position = [
+            x0 + x1,
+            y0 + y1,
+            z0 + z1,
+        ]
+
         return self
 
     def scale(self: Self, scalar: Vector3) -> Self:
-        self.size = Vector.hadamard_product(self.size, scalar)
+        x0, y0, z0 = self.size
+        x1, y1, z1 = scalar
+
+        self.size = [
+            x0 * x1,
+            y0 * y1,
+            z0 * z1,
+        ]
+
         return self
 
     """

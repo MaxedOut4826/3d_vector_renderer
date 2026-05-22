@@ -1,7 +1,5 @@
 from typing import TypedDict, Callable
-
-Vector3 = list[float]
-Vector2 = list[float]
+from utils.vector3 import Vector3
 
 Vertices = list[Vector3]
 Indices = list[list[int]]
