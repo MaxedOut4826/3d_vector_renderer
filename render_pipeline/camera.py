@@ -1,4 +1,5 @@
 from constants.config import FLOATING_POINT_PRECISION
+from objects.vertex_transformations import Vertex
 from . import Vector3
 
 
@@ -7,7 +8,7 @@ class Camera:
     rotation: Vector3 = [0, 0, 0]
 
     movement_speed: float = 1
-    sensitivity: float = 1
+    sensitivity: float = 10
 
     """
     This originally used Vector3Math to calculate but i didnt like the extra abstraction
@@ -16,25 +17,24 @@ class Camera:
 
     @staticmethod
     def move(movement_vector: Vector3) -> None:
-
         precision = FLOATING_POINT_PRECISION
         speed = Camera.movement_speed
 
         position_x, position_y, position_z = Camera.position
-        move_vector_x, move_vector_y, move_vector_z = movement_vector
+        dx, dy, dz = Vertex.get_rotated(movement_vector, Camera.rotation)
 
         Camera.position = [
-            round(position_x + move_vector_x * speed, precision),
-            round(position_y + move_vector_y * speed, precision),
-            round(position_z + move_vector_z * speed, precision),
+            round(position_x + dx * speed, precision),
+            round(position_y + dy * speed, precision),
+            round(position_z + dz * speed, precision),
         ]
 
     @staticmethod
     def rotate(rotation_vector: Vector3) -> None:
         precision = FLOATING_POINT_PRECISION
-        sensitivity = Camera.sensitivity
+        sensitivity = Camera.sensitivity / 360
 
-        rotation_x, rotation_y, rotation_z = Camera.position
+        rotation_x, rotation_y, rotation_z = Camera.rotation
         rotation_vector_x, rotation_vector_y, rotation_vector_z = rotation_vector
 
         Camera.rotation = [

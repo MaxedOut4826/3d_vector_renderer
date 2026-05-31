@@ -1,6 +1,7 @@
 from typing import Self
-from render_pipeline import ObjectParameters, Vector3, Vertices
+from render_pipeline import ObjectParameters, Vector3, Vector3Math, Vertices
 from objects.vertex_transformations import Vertex
+from render_pipeline.camera import Camera
 
 
 class Prefab:
@@ -37,15 +38,15 @@ class ObjectInstance:
     These methods are public to be used on the object instances for making transformations
     """
 
-    def rotate_yaw(self: Self, angle: float) -> Self:
+    def rotate_pitch(self: Self, angle: float) -> Self:
         self.rotation[0] += angle
         return self
 
-    def rotate_roll(self: Self, angle: float) -> Self:
+    def rotate_yaw(self: Self, angle: float) -> Self:
         self.rotation[1] += angle
         return self
 
-    def rotate_pitch(self: Self, angle: float) -> Self:
+    def rotate_roll(self: Self, angle: float) -> Self:
         self.rotation[2] += angle
         return self
 
@@ -89,6 +90,13 @@ class ObjectInstance:
         return self.prefab.mesh["vertices"]
 
     def get_transformed_vertices(self: Self) -> Vertices:
+        camera_rotation_x, camera_rotation_y, camera_rotation_z = Camera.rotation
+        inverted_camera_rotation = [
+            -camera_rotation_x,
+            -camera_rotation_y,
+            -camera_rotation_z,
+        ]
+
         position = self.position
         rotation = self.rotation
         scale = self.size
@@ -102,6 +110,8 @@ class ObjectInstance:
             vertex = Vertex.get_scaled(vertex, scale)
             vertex = Vertex.get_rotated(vertex, rotation)
             vertex = Vertex.get_translated(vertex, position)
+            vertex = Vector3Math.subtract(vertex, Camera.position)
+            vertex = Vertex.get_rotated(vertex, inverted_camera_rotation)
 
             transformed_vertices.append(vertex)
 

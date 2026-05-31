@@ -37,47 +37,47 @@ cube = Prefab(
 def animate(object: ObjectInstance) -> None:
     delta_time = Renderer.delta_time
 
-    object.rotate_roll(pi * 0.08 * delta_time).rotate_yaw(pi * 0.2 * delta_time)
+    object.rotate_yaw(pi * 0.2 * delta_time)
 
 
 # ? Cube Instances
 cube_1 = cube()
 
-"""
-Method 1 for attribute initialisation
-"""
-cube_2 = cube(
-    position=[randint(0, 30), randint(0, 30), randint(0, 30)],
-    rotation=[randint(0, 360), randint(0, 360), randint(0, 360)],
-    size=[randint(0, 10), randint(0, 10), randint(0, 10)],
-)
+# """
+# Method 1 for attribute initialisation
+# """
+# cube_2 = cube(
+#     position=[randint(0, 30), randint(0, 30), randint(0, 30)],
+#     rotation=[randint(0, 360), randint(0, 360), randint(0, 360)],
+#     size=[randint(0, 10), randint(0, 10), randint(0, 10)],
+# )
 
-"""
-Method 2 for attribute initialisation
-This is worse for performance, but cleaner in my opinion; depends on application
-"""
-cube_3 = (
-    cube()
-    .scale([randint(0, 10), randint(0, 10), randint(0, 10)])
-    .rotate([randint(0, 360), randint(0, 360), randint(0, 360)])
-    .move([randint(0, 30), randint(0, 30), randint(0, 30)])
-)
+# """
+# Method 2 for attribute initialisation
+# This is worse for performance, but cleaner in my opinion; depends on application
+# """
+# cube_3 = (
+#     cube()
+#     .scale([randint(0, 10), randint(0, 10), randint(0, 10)])
+#     .rotate([randint(0, 360), randint(0, 360), randint(0, 360)])
+#     .move([randint(0, 30), randint(0, 30), randint(0, 30)])
+# )
 
-cube_4 = (
-    cube()
-    .scale([randint(0, 10), randint(0, 10), randint(0, 10)])
-    .rotate_roll(randint(0, 360))
-    .rotate_yaw(randint(0, 360))
-    .move([randint(0, 30), randint(0, 30), randint(0, 30)])
-)
+# cube_4 = (
+#     cube()
+#     .scale([randint(0, 10), randint(0, 10), randint(0, 10)])
+#     .rotate_roll(randint(0, 360))
+#     .rotate_yaw(randint(0, 360))
+#     .move([randint(0, 30), randint(0, 30), randint(0, 30)])
+# )
 
-cube_5 = (
-    cube()
-    .scale([randint(0, 10), randint(0, 10), randint(0, 10)])
-    .rotate_roll(randint(0, 360))
-    .rotate_yaw(randint(0, 360))
-    .move([randint(0, 30), randint(0, 30), randint(0, 30)])
-)
+# cube_5 = (
+#     cube()
+#     .scale([randint(0, 10), randint(0, 10), randint(0, 10)])
+#     .rotate_roll(randint(0, 360))
+#     .rotate_yaw(randint(0, 360))
+#     .move([randint(0, 30), randint(0, 30), randint(0, 30)])
+# )
 
 # ? Call Cube animates
 run_interval(lambda: [animate(obj) for obj in Prefab.instances], 1 / MAX_FPS)

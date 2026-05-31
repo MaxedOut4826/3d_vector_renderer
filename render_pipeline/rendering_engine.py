@@ -139,7 +139,7 @@ class Renderer:
 
         # ? DEBUG
         stdout.write(
-            f"\nDT: {delta_time:.5f}s   |   FPS: {Renderer.fps:<3}|  Edges: {rendered_edges:,} / {total_edges:,} [{rendered_edges_percent:.1f}%]"
+            f"\nDT: {delta_time:.5f}s   |   FPS: {Renderer.fps:<3}|  Edges: {rendered_edges:,} / {total_edges:,} [{rendered_edges_percent:.1f}%]  |  {Camera.position}  |  {Camera.rotation}"
         )
 
     # Bitpacks the edges that the point overlaps to be masked later in the edge clip
@@ -262,7 +262,7 @@ class Renderer:
     @staticmethod
     def screen_project(vertex: Vector3) -> Vector2 | None:
         screen_x, screen_y = Renderer.screen_size
-        
+
         x0, y0, z0 = vertex
         x1, y1, z1 = Camera.position
 
