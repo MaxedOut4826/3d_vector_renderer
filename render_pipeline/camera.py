@@ -11,7 +11,7 @@ class Camera:
     sensitivity: float = 10
 
     """
-    This originally used Vector3Math to calculate but i didnt like the extra abstraction
+    This originally used Vector3Utils to calculate but i didnt like the extra abstraction
     This improves performance per action by about x6
     """
 

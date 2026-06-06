@@ -1,5 +1,5 @@
 from objects.registry.mesh.cat import cat
-from random import randint  # type: ignore
+from random import randint
 
 cat_1 = cat()
 

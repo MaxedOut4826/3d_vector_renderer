@@ -1,5 +1,4 @@
 from sys import stdout
-from os import system as run  # type: ignore
 import objects.index  # type: ignore
 import intervals.index  # type: ignore
 from constants.ansi_codes import Ansi

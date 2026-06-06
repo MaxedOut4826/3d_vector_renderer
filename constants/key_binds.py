@@ -1,4 +1,4 @@
-from typing import Callable  # type: ignore
+from typing import Callable
 from constants.movement_vector import MovementVector
 from constants.rotation_vector import RotationVector
 from render_pipeline.camera import Camera

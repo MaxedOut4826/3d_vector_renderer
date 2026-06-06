@@ -1,5 +1,5 @@
 from objects.registry.mesh.human import human
-from random import randint  # type: ignore
+from random import randint
 
 human_1 = human()
 

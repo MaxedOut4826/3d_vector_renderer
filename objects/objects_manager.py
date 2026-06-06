@@ -1,5 +1,5 @@
 from typing import Self
-from render_pipeline import ObjectParameters, Vector3, Vector3Math, Vertices
+from render_pipeline import ObjectParameters, Vector3, Vector3Utils, Vertices
 from objects.vertex_transformations import Vertex
 from render_pipeline.camera import Camera
 
@@ -110,7 +110,7 @@ class ObjectInstance:
             vertex = Vertex.get_scaled(vertex, scale)
             vertex = Vertex.get_rotated(vertex, rotation)
             vertex = Vertex.get_translated(vertex, position)
-            vertex = Vector3Math.subtract(vertex, Camera.position)
+            vertex = Vector3Utils.subtract(vertex, Camera.position)
             vertex = Vertex.get_rotated(vertex, inverted_camera_rotation)
 
             transformed_vertices.append(vertex)

@@ -87,7 +87,6 @@ class Renderer:
 
         total_edges = 0
         rendered_edges = 0
-        # unrendered_edges = 0
 
         for object in Prefab.instances:
             vertices = object.get_transformed_vertices()
@@ -111,7 +110,7 @@ class Renderer:
                     c0_3d, c1_3d = any_clipped
 
                     clipping_points = edge_clip(
-                        screen_project(c0_3d), screen_project(c1_3d)  # type: ignore
+                        screen_project(c0_3d), screen_project(c1_3d)
                     )
 
                     if clipping_points:
@@ -260,7 +259,7 @@ class Renderer:
         return intersection, p1
 
     @staticmethod
-    def screen_project(vertex: Vector3) -> Vector2 | None:
+    def screen_project(vertex: Vector3) -> Vector2:
         screen_x, screen_y = Renderer.screen_size
 
         x0, y0, z0 = vertex
