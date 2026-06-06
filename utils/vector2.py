@@ -3,7 +3,7 @@ from math import sqrt
 Vector2 = list[float]
 
 
-class Vector2Math(Vector2):
+class Vector2Utils(Vector2):
     def __new__(cls, x: float, y: float) -> Vector2:
         return [x, y]
 
