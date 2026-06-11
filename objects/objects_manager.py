@@ -51,33 +51,29 @@ class ObjectInstance:
         return self
 
     # Shorthand for the other rotate methods
-    def rotate(self: Self, rotation_vector: Vector3) -> Self:
-        pitch, yaw, roll = rotation_vector
-
+    def rotate(self: Self, pitch: float, yaw: float, roll: float) -> Self:
         self.rotate_yaw(yaw).rotate_pitch(pitch).rotate_roll(roll)
 
         return self
 
-    def move(self: Self, offset: Vector3) -> Self:
-        x0, y0, z0 = self.position
-        x1, y1, z1 = offset
+    def move(self: Self, offset_x: float, offset_y: float, offset_z: float) -> Self:
+        x, y, z = self.position
 
         self.position = [
-            x0 + x1,
-            y0 + y1,
-            z0 + z1,
+            x + offset_x,
+            y + offset_y,
+            z + offset_z,
         ]
 
         return self
 
-    def scale(self: Self, scalar: Vector3) -> Self:
-        x0, y0, z0 = self.size
-        x1, y1, z1 = scalar
+    def scale(self: Self, scalar_x: float, scalar_y: float, scalar_z: float) -> Self:
+        x, y, z = self.size
 
         self.size = [
-            x0 * x1,
-            y0 * y1,
-            z0 * z1,
+            x * scalar_x,
+            y * scalar_y,
+            z * scalar_z,
         ]
 
         return self

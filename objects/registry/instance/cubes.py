@@ -58,25 +58,25 @@ cube_1 = cube()
 # """
 # cube_3 = (
 #     cube()
-#     .scale([randint(0, 10), randint(0, 10), randint(0, 10)])
-#     .rotate([randint(0, 360), randint(0, 360), randint(0, 360)])
-#     .move([randint(0, 30), randint(0, 30), randint(0, 30)])
+#     .scale(randint(0, 10), randint(0, 10), randint(0, 10))
+#     .rotate(randint(0, 360), randint(0, 360), randint(0, 360))
+#     .move(randint(0, 30), randint(0, 30), randint(0, 30))
 # )
 
 # cube_4 = (
 #     cube()
-#     .scale([randint(0, 10), randint(0, 10), randint(0, 10)])
+#     .scale(randint(0, 10), randint(0, 10), randint(0, 10))
 #     .rotate_roll(randint(0, 360))
 #     .rotate_yaw(randint(0, 360))
-#     .move([randint(0, 30), randint(0, 30), randint(0, 30)])
+#     .move(randint(0, 30), randint(0, 30), randint(0, 30))
 # )
 
 # cube_5 = (
 #     cube()
-#     .scale([randint(0, 10), randint(0, 10), randint(0, 10)])
+#     .scale(randint(0, 10), randint(0, 10), randint(0, 10))
 #     .rotate_roll(randint(0, 360))
 #     .rotate_yaw(randint(0, 360))
-#     .move([randint(0, 30), randint(0, 30), randint(0, 30)])
+#     .move(randint(0, 30), randint(0, 30), randint(0, 30))
 # )
 
 # ? Call Cube animates
